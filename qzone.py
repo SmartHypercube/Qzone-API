@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # encoding=utf-8
 
-import urllib.request, json
+import urllib.request, json, time
 
 qzone_cookie = {}
 
@@ -65,6 +65,9 @@ class Picture:
         req = urllib.request.Request(self.url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
         return urllib.request.urlopen(req)
 
+    def __str__(self):
+        return '<Image>'
+
 class Comment:
     '''评论'''
     def __init__(self, data):
@@ -84,6 +87,12 @@ class Comment:
         if 'rich_info' in data:
             for p in data['rich_info']:
                 self.pictures.append(Picture(p['burl']))
+
+    def __str__(self):
+        s = '%s: %s%s' % (self.nickname, ''.join(map(str, self.pictures)), self.content)
+        if self.replys:
+            s += '\n| ' + '\n| '.join(map(str, self.replys))
+        return s
 
 class Emotion:
     '''说说
@@ -201,6 +210,29 @@ class Emotion:
         like = json.loads(s[s.find('(')+1 : s.rfind(')')])
         data['__like'] = like['data']['like_uin_info']
         self.parse(data)
+
+    def __str__(self):
+        s = self.nickname
+        if self.ctime:
+            s += ' ' + time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(self.ctime))
+        if self.location and self.location['name']:
+            s += ' from %s' % self.location['name']
+        if self.source:
+            s += ' via %s' % self.source
+        s += '\n'
+        s += ''.join(map(str, self.pictures))
+        if self.content:
+            s += self.content
+        else:
+            s += self.shortcon + ' ...'
+        s += '\n'
+        if self.origin:
+            s += '| ' + '\n| '.join(str(self.origin).splitlines()) + '\n'
+        if self.like:
+            s += '%s likes   ' % len(self.like)
+        s += '%s forwards   %s comments\n' % (self.forwardn, len(self.comments))
+        s += '\n'.join(map(str, filter(None, self.comments)))
+        return s
 
 class Qzone:
     def __init__(self, **cookie):
