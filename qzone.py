@@ -210,6 +210,16 @@ class Emotion:
         like = json.loads(s[s.find('(')+1 : s.rfind(')')])
         data['__like'] = like['data']['like_uin_info']
         self.parse(data)
+        if self.pictures:
+            url = make_url('https://h5.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_get_pics_v6',
+                    uin = self.author,
+                    tid = self.tid,
+                    g_tk = make_g_tk(**qzone_cookie))
+            req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+            with urllib.request.urlopen(req) as http:
+                s = http.read().decode()
+            pictures = json.loads(s[s.find('(')+1 : s.rfind(')')])
+            self.pictures = list(map(Picture, pictures['imageUrls']))
 
     def __str__(self):
         s = self.nickname
