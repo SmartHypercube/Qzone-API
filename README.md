@@ -43,6 +43,8 @@
 
 `qzone.Qzone(**qzone.get_cookie_from_curl("curl --header 'Host: qzone.qq.com' --header 'User-Agent: ...' --header 'Cookie: a=1; b=2; c=3' 'http://qzone.qq.com/' -O -J -L"))`可以从curl命令（在装了相关插件的浏览器上会很容易取得）中提取出cookie部分，创建`Qzone`对象
 
+不妨试试`print(一个emotion)`？
+
 ## 意见与建议
 
 作者已经尽量进行了测试，这个模块没有抛出过异常，应该十分稳定。但毕竟QQ空间构造复杂，如果您在使用时遇到了错误，请在issue中描述清楚出错的说说有什么样的特殊性，最好截图，我将会尽力解决。
