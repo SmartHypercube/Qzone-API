@@ -121,14 +121,10 @@ class Emotion:
             like
         '''
         # comments
-        if 'cmtnum' in data:
-            if data['cmtnum']:
-                self.comments = list(map(Comment, data['commentlist']))
-                self.comments += [NotLoaded] * (data['cmtnum'] - len(self.comments))
-            else:
-                self.comments = []
+        if 'commentlist' in data:
+            self.comments = list(map(Comment, data['commentlist']))
         else:
-            self.comments = NotLoaded
+            self.comments = []
         # shortcon
         self.shortcon = data['content']
         # content
@@ -191,12 +187,26 @@ class Emotion:
         url = make_url('https://h5.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msgdetail_v6',
                 uin = self.author,
                 tid = self.tid,
-                num = len(self.comments),
+                num = 20,
+                pos = 0,
                 g_tk = make_g_tk(**qzone_cookie))
         req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
         with urllib.request.urlopen(req) as http:
             s = http.read().decode()
         data = json.loads(s[s.find('(')+1 : s.rfind(')')])
+        for i in range(20, len(self.comments), 20):
+            if len(data['commentlist']) != 20 * i:
+                break
+            url = make_url('https://h5.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msgdetail_v6',
+                    uin = self.author,
+                    tid = self.tid,
+                    num = 20,
+                    pos = i,
+                    g_tk = make_g_tk(**qzone_cookie))
+            req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+            with urllib.request.urlopen(req) as http:
+                s = http.read().decode()
+            data['commentlist'] += json.loads(s[s.find('(')+1 : s.rfind(')')])['commentlist']
         url = make_url('http://users.qzone.qq.com/cgi-bin/likes/get_like_list_app',
                 uin = qzone_cookie['ptui_loginuin'],
                 unikey = 'http%%3A%%2F%%2Fuser.qzone.qq.com%%2F%s%%2Fmood%%2F%s' % (self.author, self.tid),
