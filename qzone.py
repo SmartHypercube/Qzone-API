@@ -3,6 +3,8 @@
 
 import urllib.request, json, time
 
+UA = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:49.0) Gecko/20100101 Firefox/49.0'
+
 qzone_cookie = {}
 
 def cookie_dict_to_str(**cookie):
@@ -60,9 +62,11 @@ class Picture:
     '''图片'''
     def __init__(self, url):
         self.url = url
+        if url.startswith('http://p.qpimg.cn/cgi-bin/cgi_imgproxy?'):
+            self.url = url[url.find('url=')+4:]
 
     def open(self):
-        req = urllib.request.Request(self.url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+        req = urllib.request.Request(self.url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         return urllib.request.urlopen(req)
 
     def __str__(self):
@@ -189,8 +193,9 @@ class Emotion:
                 tid = self.tid,
                 num = 20,
                 pos = 0,
-                g_tk = make_g_tk(**qzone_cookie))
-        req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+                g_tk = make_g_tk(**qzone_cookie),
+                not_trunc_con = 1)
+        req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
             s = http.read().decode()
         data = json.loads(s[s.find('(')+1 : s.rfind(')')])
@@ -202,19 +207,20 @@ class Emotion:
                     tid = self.tid,
                     num = 20,
                     pos = i,
-                    g_tk = make_g_tk(**qzone_cookie))
-            req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+                    g_tk = make_g_tk(**qzone_cookie),
+                    not_trunc_con = 1)
+            req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
             with urllib.request.urlopen(req) as http:
                 s = http.read().decode()
             data['commentlist'] += json.loads(s[s.find('(')+1 : s.rfind(')')])['commentlist']
-        url = make_url('http://users.qzone.qq.com/cgi-bin/likes/get_like_list_app',
+        url = make_url('http://users.edu.qzone.qq.com/cgi-bin/likes/get_like_list_app',
                 uin = qzone_cookie['ptui_loginuin'],
                 unikey = 'http%%3A%%2F%%2Fuser.qzone.qq.com%%2F%s%%2Fmood%%2F%s' % (self.author, self.tid),
                 begin_uin = 0,
                 query_count = 999999,
                 if_first_page = 1,
                 g_tk = make_g_tk(**qzone_cookie))
-        req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+        req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
             s = http.read().decode()
         like = json.loads(s[s.find('(')+1 : s.rfind(')')])
@@ -225,7 +231,7 @@ class Emotion:
                     uin = self.author,
                     tid = self.tid,
                     g_tk = make_g_tk(**qzone_cookie))
-            req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+            req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
             with urllib.request.urlopen(req) as http:
                 s = http.read().decode()
             pictures = json.loads(s[s.find('(')+1 : s.rfind(')')])
@@ -274,7 +280,7 @@ class Qzone:
                 code_version = code_version,
                 format = 'jsonp',
                 need_private_comment = need_private_comment)
-        req = urllib.request.Request(url, headers=dict(Cookie=cookie_dict_to_str(**qzone_cookie)))
+        req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
             s = http.read().decode()
         return json.loads(s[s.find('(')+1 : s.rfind(')')])
@@ -282,4 +288,5 @@ class Qzone:
     def emotion_list(self, uin, num=20, pos=0, ftype=0, sort=0, replynum=100,
             code_version=1, need_private_comment=1):
         '''获取一个用户的说说列表，返回Emotion对象列表'''
-        return list(map(Emotion, self.emotion_list_raw(uin, num, pos, ftype, sort, replynum, code_version, need_private_comment)['msglist']))
+        l = self.emotion_list_raw(uin, num, pos, ftype, sort, replynum, code_version, need_private_comment)['msglist']
+        return list(map(Emotion, l if l else []))
