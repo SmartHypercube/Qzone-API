@@ -13,6 +13,12 @@ def cookie_dict_to_str(**cookie):
 def cookie_str_to_dict(cookie):
     return dict(map(lambda s: s.partition('=')[::2], cookie.split('; ')))
 
+def get_cookie_from_file(path):
+    '''从cookie文件获取'''
+    cookie = http.cookiejar.MozillaCookieJar()
+    cookie.load(path, ignore_discard=True, ignore_expires=True)
+    return dict(map(lambda s: (s.name, s.value), cookie))
+
 def get_cookie_from_curl(curl):
     '''为了使用方便，提供一个从curl命令中解析出cookie的函数'''
     start = curl.find('Cookie: ') + 8
