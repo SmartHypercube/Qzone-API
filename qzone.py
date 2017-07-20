@@ -90,11 +90,11 @@ class Comment:
         self.tid = data['tid']
         self.author = data['uin']
         self.replys = []
-        if 'list_3' in data:
+        if 'list_3' in data and data['list_3']:
             for r in data['list_3']:
                 self.replys.append(Comment(r))
         self.pictures = []
-        if 'rich_info' in data:
+        if 'rich_info' in data and data['rich_info']:
             for p in data['rich_info']:
                 self.pictures.append(Picture(p['burl']))
 
@@ -131,7 +131,7 @@ class Emotion:
             like
         '''
         # comments
-        if 'commentlist' in data:
+        if 'commentlist' in data and data['commentlist']:
             self.comments = list(map(Comment, data['commentlist']))
         else:
             self.comments = []
@@ -154,7 +154,7 @@ class Emotion:
         # nickname
         self.nickname = data['name']
         # pictures
-        if 'pictotal' in data:
+        if 'pictotal' in data and data['pictotal']:
             self.pictures = list(map(lambda i:Picture(i['url1']), data['pic']))
             self.pictures += [NotLoaded] * (data['pictotal'] - len(self.pictures))
         else:
@@ -169,7 +169,7 @@ class Emotion:
         else:
             self.origin = None
         # forwards
-        if 'rtlist' in data:
+        if 'rtlist' in data and data['rt_list']:
             self.forwards = []
             for f in data['rtlist']:
                 if 'con' not in f:
