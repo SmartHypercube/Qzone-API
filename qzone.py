@@ -169,7 +169,7 @@ class Emotion:
         else:
             self.origin = None
         # forwards
-        if 'rtlist' in data and data['rt_list']:
+        if 'rtlist' in data and data['rtlist']:
             self.forwards = []
             for f in data['rtlist']:
                 if 'con' not in f:
