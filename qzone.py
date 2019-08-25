@@ -21,7 +21,10 @@ def get_cookie_from_file(path):
 
 def get_cookie_from_curl(curl):
     '''为了使用方便，提供一个从curl命令中解析出cookie的函数'''
-    start = curl.find('Cookie: ') + 8
+    start = curl.find('Cookie: ')
+    if start == -1:
+        start = curl.find('cookie: ')
+    start = start + 8
     end = curl.find("'", start)
     return cookie_str_to_dict(curl[start:end])
 
