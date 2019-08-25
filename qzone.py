@@ -206,7 +206,7 @@ class Emotion:
                 not_trunc_con = 1)
         req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
-            s = http.read().decode()
+            s = http.read().decode(errors='surrogateescape')
         data = json.loads(s[s.find('(')+1 : s.rfind(')')])
         for i in range(20, len(self.comments), 20):
             if len(data['commentlist']) != 20 * i:
@@ -220,7 +220,7 @@ class Emotion:
                     not_trunc_con = 1)
             req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
             with urllib.request.urlopen(req) as http:
-                s = http.read().decode()
+                s = http.read().decode(errors='surrogateescape')
             data['commentlist'] += json.loads(s[s.find('(')+1 : s.rfind(')')])['commentlist']
         url = make_url('http://users.qzone.qq.com/cgi-bin/likes/get_like_list_app',
                 uin = int(qzone_cookie['uin'].strip('o')),
@@ -231,7 +231,7 @@ class Emotion:
                 g_tk = make_g_tk(**qzone_cookie))
         req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
-            s = http.read().decode()
+            s = http.read().decode(errors='surrogateescape')
         like = json.loads(s[s.find('(')+1 : s.rfind(')')])
         data['__like'] = like['data']['like_uin_info']
         self.parse(data)
@@ -242,7 +242,7 @@ class Emotion:
                     g_tk = make_g_tk(**qzone_cookie))
             req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
             with urllib.request.urlopen(req) as http:
-                s = http.read().decode()
+                s = http.read().decode(errors='surrogateescape')
             pictures = json.loads(s[s.find('(')+1 : s.rfind(')')])
             self.pictures = list(map(Picture, pictures['imageUrls']))
 
@@ -291,7 +291,7 @@ class Qzone:
                 need_private_comment = need_private_comment)
         req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
-            s = http.read().decode()
+            s = http.read().decode(errors='surrogateescape')
         return json.loads(s[s.find('(')+1 : s.rfind(')')])
 
     def emotion_list(self, uin, num=20, pos=0, ftype=0, sort=0, replynum=100,
