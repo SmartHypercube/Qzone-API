@@ -220,7 +220,7 @@ class Emotion:
                 s = http.read().decode()
             data['commentlist'] += json.loads(s[s.find('(')+1 : s.rfind(')')])['commentlist']
         url = make_url('http://users.qzone.qq.com/cgi-bin/likes/get_like_list_app',
-                uin = qzone_cookie['ptui_loginuin'],
+                uin = int(qzone_cookie['uin'].strip('o')),
                 unikey = 'http%%3A%%2F%%2Fuser.qzone.qq.com%%2F%s%%2Fmood%%2F%s' % (self.author, self.tid),
                 begin_uin = 0,
                 query_count = 999999,
