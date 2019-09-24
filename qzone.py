@@ -80,6 +80,29 @@ class Picture:
 
     def __str__(self):
         return '<Image>'
+class Video:
+    '''视频'''
+    def __init__(self, cover_url,video_url):
+        self.cover_url = cover_url
+        self.video_url = video_url
+        if cover_url.startswith('http://p.qpimg.cn/cgi-bin/cgi_imgproxy?'):
+            self.cover_url = cover_url[cover_url.find('url=')+4:]
+
+    def open_cover(self):
+        req = urllib.request.Request(self.cover_url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
+        return urllib.request.urlopen(req)
+    def open_video(self):
+        req = urllib.request.Request(self.video_url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
+        try:
+            response = urllib.request.urlopen(req)
+        except urllib.error.HTTPError as error:
+            error_code = str(error.code)
+        except urllib.error.URLError as error:
+            error_code = str(error.reason)
+        return response, error_code
+
+    def __str__(self):
+        return '<Video>'
 
 class Comment:
     '''评论'''
@@ -162,6 +185,11 @@ class Emotion:
             self.pictures += [NotLoaded] * (data['pictotal'] - len(self.pictures))
         else:
             self.pictures = []
+        # videos
+        if 'video' in data and data['video']!=[]:
+            self.videos=list(map(lambda i:Video(i['url1'],i['url3']), data['video']))
+        else:
+            self.videos = []
         # origin
         if 'rt_con' in data and data['rt_tid']:
             odata = dict(commentlist=[], content=data['rt_con']['content'], created_time=NotLoaded, name=data['rt_uinname'])
@@ -256,6 +284,7 @@ class Emotion:
             s += ' via %s' % self.source
         s += '\n'
         s += ''.join(map(str, self.pictures))
+        s += ''.join(map(str, self.videos))
         if self.content:
             s += self.content
         else:
