@@ -67,10 +67,14 @@ class NotLoadedType:
         return 'NotLoaded'
 NotLoaded = NotLoadedType()
 
-class Picture:
+class Media:
     '''图片'''
-    def __init__(self, url):
+    def __init__(self, url,video_url=''):
         self.url = url
+        self.type = "Image"
+        self.video_url = video_url
+        if video_url!="":
+            self.type="Video"
         if url.startswith('http://p.qpimg.cn/cgi-bin/cgi_imgproxy?'):
             self.url = url[url.find('url=')+4:]
 
@@ -78,19 +82,6 @@ class Picture:
         req = urllib.request.Request(self.url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         return urllib.request.urlopen(req)
 
-    def __str__(self):
-        return '<Image>'
-class Video:
-    '''视频'''
-    def __init__(self, cover_url,video_url):
-        self.cover_url = cover_url
-        self.video_url = video_url
-        if cover_url.startswith('http://p.qpimg.cn/cgi-bin/cgi_imgproxy?'):
-            self.cover_url = cover_url[cover_url.find('url=')+4:]
-
-    def open_cover(self):
-        req = urllib.request.Request(self.cover_url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
-        return urllib.request.urlopen(req)
     def open_video(self):
         req = urllib.request.Request(self.video_url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         try:
@@ -102,7 +93,7 @@ class Video:
         return response, error_code
 
     def __str__(self):
-        return '<Video>'
+        return '<'+self.type+'>'
 
 class Comment:
     '''评论'''
@@ -122,7 +113,7 @@ class Comment:
         self.pictures = []
         if 'rich_info' in data and data['rich_info']:
             for p in data['rich_info']:
-                self.pictures.append(Picture(p['burl']))
+                self.pictures.append(Media(p['burl']))
 
     def __str__(self):
         s = '%s: %s%s' % (self.nickname, ''.join(map(str, self.pictures)), self.content)
@@ -180,16 +171,19 @@ class Emotion:
         # nickname
         self.nickname = data['name']
         # pictures
+        self.pictures = []
         if 'pictotal' in data and data['pictotal']:
-            self.pictures = list(map(lambda i:Picture(i['url1']), data['pic']))
+            for pic in data['pic']:
+                if 'video_info' in pic:
+                    self.pictures.append(Media(pic['url1'],pic['video_info']['url3']))
+                else:
+                    self.pictures.append(Media(pic['url1']))
             self.pictures += [NotLoaded] * (data['pictotal'] - len(self.pictures))
-        else:
-            self.pictures = []
+            
         # videos
         if 'video' in data and data['video']!=[]:
-            self.videos=list(map(lambda i:Video(i['url1'],i['url3']), data['video']))
-        else:
-            self.videos = []
+            self.pictures+=list(map(lambda i:Media(i['url1'],i['url3']), data['video']))
+            
         # origin
         if 'rt_con' in data and data['rt_tid']:
             odata = dict(commentlist=[], content=data['rt_con']['content'], created_time=NotLoaded, name=data['rt_uinname'])
@@ -219,7 +213,7 @@ class Emotion:
         if '__like' in data:
             self.like = {}
             for i in data['__like']:
-                self.like[i['fuin']] = (i['nick'], Picture(i['portrait']))
+                self.like[i['fuin']] = (i['nick'], Media(i['portrait']))
         else:
             self.like = NotLoaded
 
@@ -272,7 +266,19 @@ class Emotion:
             with urllib.request.urlopen(req) as http:
                 s = http.read().decode(errors='surrogateescape')
             pictures = json.loads(s[s.find('(')+1 : s.rfind(')')])
-            self.pictures = list(map(Picture, pictures['imageUrls']))
+
+            #rebuild pic list
+            new_piclist=[]
+            exist_pic=[]
+            for pic in self.pictures:
+                if pic != NotLoaded:
+                    new_piclist.append(pic)
+                    exist_pic.append(pic.url)
+            self.pictures=new_piclist
+            if 'imageUrls' in pictures and pictures['imageUrls']:
+                for image_url in pictures['imageUrls']:
+                    if image_url not in exist_pic:
+                        self.pictures.append(Media(image_url))
 
     def __str__(self):
         s = self.nickname
@@ -284,7 +290,6 @@ class Emotion:
             s += ' via %s' % self.source
         s += '\n'
         s += ''.join(map(str, self.pictures))
-        s += ''.join(map(str, self.videos))
         if self.content:
             s += self.content
         else:
