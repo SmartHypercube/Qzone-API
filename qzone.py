@@ -241,7 +241,7 @@ class Emotion:
             with urllib.request.urlopen(req) as http:
                 s = http.read().decode(errors='surrogateescape')
             data['commentlist'] += json.loads(s[s.find('(')+1 : s.rfind(')')])['commentlist']
-        url = make_url('http://users.qzone.qq.com/cgi-bin/likes/get_like_list_app',
+        url = make_url('https://users.qzone.qq.com/cgi-bin/likes/get_like_list_app',
                 uin = int(qzone_cookie['uin'].strip('o')),
                 unikey = 'http%%3A%%2F%%2Fuser.qzone.qq.com%%2F%s%%2Fmood%%2F%s' % (self.author, self.tid),
                 begin_uin = 0,
