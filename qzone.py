@@ -88,7 +88,7 @@ class Media:
             return urllib.request.urlopen(req)
         except urllib.error.HTTPError as e:
             raise ValueError(f'错误：{e.code}')
-        except urllib.error.URLError as error:
+        except urllib.error.URLError as e:
             raise ValueError(f'错误：{e.reason}')
 
     def __str__(self):
