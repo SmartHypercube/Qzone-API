@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+# !/usr/bin/python3
 # encoding=utf-8
 
 import urllib.request, json, time, http.cookiejar
@@ -7,17 +7,21 @@ UA = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:49.0) Gecko/20100101 Firefox/49.0'
 
 qzone_cookie = {}
 
+
 def cookie_dict_to_str(**cookie):
     return '; '.join(map('='.join, cookie.items()))
 
+
 def cookie_str_to_dict(cookie):
     return dict(map(lambda s: s.partition('=')[::2], cookie.split('; ')))
+
 
 def get_cookie_from_file(path):
     '''从cookie文件获取'''
     cookie = http.cookiejar.MozillaCookieJar()
     cookie.load(path, ignore_discard=True, ignore_expires=True)
     return dict(map(lambda s: (s.name, s.value), cookie))
+
 
 def get_cookie_from_curl(curl):
     '''为了使用方便，提供一个从curl命令中解析出cookie的函数'''
@@ -28,20 +32,23 @@ def get_cookie_from_curl(curl):
     end = curl.find("'", start)
     return cookie_str_to_dict(curl[start:end])
 
+
 def make_url(url, order=None, **args):
     if not order:
         order = args
-    return url + '?' + '&'.join(map(lambda k: k+'=%s'%args[k], order))
+    return url + '?' + '&'.join(map(lambda k: k + '=%s' % args[k], order))
+
 
 def make_g_tk(p_skey, __cache={}, **cookie):
     if p_skey in __cache:
         return __cache[p_skey]
     tk = 5381
     for c in p_skey:
-        tk += (tk<<5) + ord(c)
+        tk += (tk << 5) + ord(c)
     tk &= 0x7fffffff
     __cache[p_skey] = tk
     return tk
+
 
 class NotLoadedType:
     '''用于表示尚未载入的内容'''
@@ -54,27 +61,34 @@ class NotLoadedType:
         return cls._instance
     '''
     _locked = False
+
     @staticmethod
     def __init__():
         if NotLoadedType._locked:
             raise ValueError('Do not make new instance of NotLoadedType')
         NotLoadedType._locked = True
+
     @staticmethod
     def __bool__():
         return False
+
     @staticmethod
     def __repr__():
         return 'NotLoaded'
+
+
 NotLoaded = NotLoadedType()
+
 
 class Media:
     '''图片或视频'''
+
     def __init__(self, url, video_url=None):
         self.url = url
         self.video_url = video_url
         self.type = 'Video' if video_url else 'Image'
         if url.startswith('http://p.qpimg.cn/cgi-bin/cgi_imgproxy?'):
-            self.url = url[url.find('url=')+4:]
+            self.url = url[url.find('url=') + 4:]
 
     def open(self):
         req = urllib.request.Request(self.url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
@@ -83,7 +97,8 @@ class Media:
     def open_video(self):
         if self.type != 'Video':
             raise TypeError('不是视频')
-        req = urllib.request.Request(self.video_url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
+        req = urllib.request.Request(self.video_url,
+                                     headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         try:
             return urllib.request.urlopen(req)
         except urllib.error.HTTPError as e:
@@ -94,8 +109,10 @@ class Media:
     def __str__(self):
         return f'<{self.type}>'
 
+
 class Comment:
     '''评论'''
+
     def __init__(self, data):
         self.parse(data)
 
@@ -120,10 +137,12 @@ class Comment:
             s += '\n| ' + '\n| '.join(map(str, self.replys))
         return s
 
+
 class Emotion:
     '''说说
 
     这个类的部分属性值可能是NotLoaded，列表类型的属性值中也可能包含NotLoaded，表示相关信息必须进一步发送请求才能载入。调用load()方法可完全载入所有信息。'''
+
     def __init__(self, data):
         self.parse(data)
 
@@ -183,7 +202,8 @@ class Emotion:
             self.pictures += list(map(lambda i: Media(i['url1'], i['url3']), data['video']))
         # origin
         if 'rt_con' in data and data['rt_tid']:
-            odata = dict(commentlist=[], content=data['rt_con']['content'], created_time=NotLoaded, name=data['rt_uinname'])
+            odata = dict(commentlist=[], content=data['rt_con']['content'], created_time=NotLoaded,
+                         name=data['rt_uinname'])
             for k in data:
                 if k.startswith('rt_'):
                     odata[k[3:]] = data[k]
@@ -217,52 +237,52 @@ class Emotion:
     def load(self):
         '''完全载入一条说说的所有信息'''
         url = make_url('https://h5.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msgdetail_v6',
-                uin = self.author,
-                tid = self.tid,
-                num = 20,
-                pos = 0,
-                g_tk = make_g_tk(**qzone_cookie),
-                not_trunc_con = 1)
+                       uin=self.author,
+                       tid=self.tid,
+                       num=20,
+                       pos=0,
+                       g_tk=make_g_tk(**qzone_cookie),
+                       not_trunc_con=1)
         req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
             s = http.read().decode(errors='surrogateescape')
-        data = json.loads(s[s.find('(')+1 : s.rfind(')')])
+        data = json.loads(s[s.find('(') + 1: s.rfind(')')])
         for i in range(20, len(self.comments), 20):
             if len(data['commentlist']) != 20 * i:
                 break
             url = make_url('https://h5.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msgdetail_v6',
-                    uin = self.author,
-                    tid = self.tid,
-                    num = 20,
-                    pos = i,
-                    g_tk = make_g_tk(**qzone_cookie),
-                    not_trunc_con = 1)
+                           uin=self.author,
+                           tid=self.tid,
+                           num=20,
+                           pos=i,
+                           g_tk=make_g_tk(**qzone_cookie),
+                           not_trunc_con=1)
             req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
             with urllib.request.urlopen(req) as http:
                 s = http.read().decode(errors='surrogateescape')
-            data['commentlist'] += json.loads(s[s.find('(')+1 : s.rfind(')')])['commentlist']
+            data['commentlist'] += json.loads(s[s.find('(') + 1: s.rfind(')')])['commentlist']
         url = make_url('https://users.qzone.qq.com/cgi-bin/likes/get_like_list_app',
-                uin = int(qzone_cookie['uin'].strip('o')),
-                unikey = 'http%%3A%%2F%%2Fuser.qzone.qq.com%%2F%s%%2Fmood%%2F%s' % (self.author, self.tid),
-                begin_uin = 0,
-                query_count = 999999,
-                if_first_page = 1,
-                g_tk = make_g_tk(**qzone_cookie))
+                       uin=int(qzone_cookie['uin'].strip('o')),
+                       unikey='http%%3A%%2F%%2Fuser.qzone.qq.com%%2F%s%%2Fmood%%2F%s' % (self.author, self.tid),
+                       begin_uin=0,
+                       query_count=999999,
+                       if_first_page=1,
+                       g_tk=make_g_tk(**qzone_cookie))
         req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
             s = http.read().decode(errors='surrogateescape')
-        like = json.loads(s[s.find('(')+1 : s.rfind(')')])
+        like = json.loads(s[s.find('(') + 1: s.rfind(')')])
         data['__like'] = like['data']['like_uin_info']
         self.parse(data)
         if self.pictures:
             url = make_url('https://h5.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_get_pics_v6',
-                    uin = self.author,
-                    tid = self.tid,
-                    g_tk = make_g_tk(**qzone_cookie))
+                           uin=self.author,
+                           tid=self.tid,
+                           g_tk=make_g_tk(**qzone_cookie))
             req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
             with urllib.request.urlopen(req) as http:
                 s = http.read().decode(errors='surrogateescape')
-            pictures = json.loads(s[s.find('(')+1 : s.rfind(')')])
+            pictures = json.loads(s[s.find('(') + 1: s.rfind(')')])
             self.pictures = [pic for pic in self.pictures if pic]
             urls = {pic.url for pic in self.pictures}
             self.pictures += [Media(url) for url in pictures['imageUrls'] if url not in urls]
@@ -290,33 +310,34 @@ class Emotion:
         s += '\n'.join(map(str, filter(None, self.comments)))
         return s
 
+
 class Qzone:
     def __init__(self, **cookie):
         global qzone_cookie
         qzone_cookie = cookie
 
-    def emotion_list_raw(self, uin, num=20, pos=0, ftype=0, sort=0, replynum=100,
-            code_version=1, need_private_comment=1):
+    def emotion_list_raw(self, num=20, pos=0, ftype=0, sort=0, replynum=100,
+                         code_version=1, need_private_comment=1):
         '''获取一个用户的说说列表，返回经过json解析的原始数据'''
         url = make_url('https://h5.qzone.qq.com/proxy/domain/taotao.qq.com/cgi-bin/emotion_cgi_msglist_v6',
-                uin = uin,
-                ftype = ftype,
-                sort = sort,
-                pos = pos,
-                num = num,
-                replynum = replynum,
-                g_tk = make_g_tk(**qzone_cookie),
-                callback = '_preloadCallback',
-                code_version = code_version,
-                format = 'jsonp',
-                need_private_comment = need_private_comment)
+                       uin=qzone_cookie['uin'],
+                       ftype=ftype,
+                       sort=sort,
+                       pos=pos,
+                       num=num,
+                       replynum=replynum,
+                       g_tk=make_g_tk(**qzone_cookie),
+                       callback='_preloadCallback',
+                       code_version=code_version,
+                       format='jsonp',
+                       need_private_comment=need_private_comment)
         req = urllib.request.Request(url, headers={'Cookie': cookie_dict_to_str(**qzone_cookie), 'User-Agent': UA})
         with urllib.request.urlopen(req) as http:
             s = http.read().decode(errors='surrogateescape')
-        return json.loads(s[s.find('(')+1 : s.rfind(')')])
+        return json.loads(s[s.find('(') + 1: s.rfind(')')])
 
-    def emotion_list(self, uin, num=20, pos=0, ftype=0, sort=0, replynum=100,
-            code_version=1, need_private_comment=1):
+    def emotion_list(self, num=20, pos=0, ftype=0, sort=0, replynum=100,
+                     code_version=1, need_private_comment=1):
         '''获取一个用户的说说列表，返回Emotion对象列表'''
-        l = self.emotion_list_raw(uin, num, pos, ftype, sort, replynum, code_version, need_private_comment)['msglist']
+        l = self.emotion_list_raw(num, pos, ftype, sort, replynum, code_version, need_private_comment)['msglist']
         return list(map(Emotion, l if l else []))
