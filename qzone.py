@@ -3,6 +3,9 @@
 
 import urllib.request, json, time, http.cookiejar
 
+import requests
+
+
 UA = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:49.0) Gecko/20100101 Firefox/49.0'
 
 qzone_cookie = {}
@@ -315,6 +318,7 @@ class Qzone:
     def __init__(self, **cookie):
         global qzone_cookie
         qzone_cookie = cookie
+        self.gtk=make_g_tk(**qzone_cookie)
 
     def emotion_list_raw(self, num=20, pos=0, ftype=0, sort=0, replynum=100,
                          code_version=1, need_private_comment=1):
@@ -326,7 +330,7 @@ class Qzone:
                        pos=pos,
                        num=num,
                        replynum=replynum,
-                       g_tk=make_g_tk(**qzone_cookie),
+                       g_tk=self.gtk,
                        callback='_preloadCallback',
                        code_version=code_version,
                        format='jsonp',
@@ -341,3 +345,5 @@ class Qzone:
         '''获取一个用户的说说列表，返回Emotion对象列表'''
         l = self.emotion_list_raw(num, pos, ftype, sort, replynum, code_version, need_private_comment)['msglist']
         return list(map(Emotion, l if l else []))
+
+
